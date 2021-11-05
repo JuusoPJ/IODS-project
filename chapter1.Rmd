@@ -4,10 +4,7 @@
 *Write a short description about the course and add a link to your GitHub repository here. This is an R Markdown (.Rmd) file so you should use R Markdown syntax.*
 
 ```{r}
-# This is a so-called "R chunk" where you can write R code.
-
 date()
-
 ```
-The text continues here.
-
+This project is created for the Introduction to open data science 2021 MOOC. The course exists as an introduction to data science in an open environment utilizing R and GitHub. This course is part of my Phd courses in the University of Helsinki.
+https://github.com/JuusoPJ/IODS-project
