@@ -1,8 +1,6 @@
-# Insert chapter 2 title here
+# What I did for the first week
 
-*Describe the work you have done this week and summarize your learning.*
-
-For this week I have made an account on GitHub and connected github with Rstudio.
+For this week I have made an account on GitHub and connected github with Rstudio. I also learned how to upload changes into my repository via Rstudio commit.
 
 ```{r}
 date()
