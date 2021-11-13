@@ -1,7 +1,13 @@
-# 2. week.Regression and model validation
+# Regression and model validation
+
+This week we have the learning 2014 data, already changed with the script found in https://github.com/JuusoPJ/IODS-project
+
 ```{r}
-students2014 = read.csv("learning2014.csv", as.is = TRUE, header = TRUE) #read file made with script
-students2014 = students2014[c(2,3,4,5,6,7,8)] #remove the first x index column
+# read file made with script
+students2014 = read.csv("learning2014.csv", as.is = TRUE, header = TRUE)
+
+# remove the first x index column
+students2014 = students2014[c(2,3,4,5,6,7,8)]
 ```
 
 ```{r}
@@ -21,31 +27,41 @@ p
 
 
 ```{r}
-library(corrplot) #load corrplot package to plot correlations between all the variables (similar but far less heavy than ggplot)
+# load corrplot package to plot correlations between all the variables (similar but far less heavy than ggplot)
+library(corrplot)
 ```
 ```{r}
-x = students2014[, c("age", "attitude", "deep", "stra","surf","points")] #numeric variables
-cor(x, use = "pairwise") #correlation matrix
+# create vector for just numeric variables
+x = students2014[, c("age", "attitude", "deep", "stra","surf","points")] 
+# correlation matrix
+cor(x, use = "pairwise") 
 ```
 ```{r}
-corrplot.mixed(cor(x, use = "pairwise"), order ="hclust") #graphical representation of correlations from corrplot package
+# graphical representation of correlations from corrplot package
+corrplot.mixed(cor(x, use = "pairwise"), order ="hclust") 
 ```
 ```{r}
-lm.p = lm(points ~ attitude + surf + stra, data = students2014)#linear model with three most correlated variables
+# linear model with three most correlated variable
+lm.p = lm(points ~ attitude + surf + stra, data = students2014)
 summary(lm.p)
 ```
 The model explains 20% of the variance of points, with only attitude having a significant p-value and so differing from null hypothesis.
 ```{r}
-lm.pn = lm(points ~attitude, data = students2014) #new model with the only significant effect
+# new model with the only significant effect
+lm.pn = lm(points ~attitude, data = students2014) 
 summary(lm.pn)
 ```
 The model now explains 19% of the variance of points with points increasing 0.35 for every 1 increase in attitude.
 ```{r}
-qplot(attitude, points, data = students2014) + geom_smooth(method = "lm") #scatter plot with the linear model line
+# scatter plot with the linear model line
+qplot(attitude, points, data = students2014) + geom_smooth(method = "lm") 
 ```
 ```{r}
-par(mfrow = c(2,2)) #plot to 2x2 area
-plot(lm.pn) #automatically generates 4 typically used diagnostic plots
+# plot to 2x2 area
+par(mfrow = c(2,2)) 
+
+# automatically generates 4 typically used diagnostic plots
+plot(lm.pn) 
 ```
 
 1. Residuals do not show a pattern where the distribution of residuals varies depending on fitted values.
