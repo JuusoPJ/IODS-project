@@ -1,6 +1,8 @@
 # Regression and model validation
 
-This week we have the learning 2014 data, already changed with the script found in https://github.com/JuusoPJ/IODS-project
+This week we have the learning 2014 data, already changed with the script found in
+
+https://github.com/JuusoPJ/IODS-project/tree/master/data
 
 ```{r}
 # read file made with script
