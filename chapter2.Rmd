@@ -1,7 +1,56 @@
+# 2. week.Regression and model validation
+```{r}
+students2014 = read.csv("learning2014.csv", as.is = TRUE, header = TRUE) #read file made with script
+students2014 = students2014[c(2,3,4,5,6,7,8)] #remove the first x index column
+```
 
-# What I did for the first week
+```{r}
+str(students2014)
+```
+The data consists of 166 observations with 7 variables.
+```{r}
+# access the GGally and ggplot2 libraries
+library(GGally)
+library(ggplot2)
+```
+```{r}
+# create a more advanced plot matrix with ggpairs()
+p = ggpairs(students2014, mapping = aes(col = gender, alpha = 0.3), lower = list(combo = wrap("facethist", bins = 20)))
+p
+```
 
-For this week I have made an account on GitHub and connected github with Rstudio. I also learned how to upload changes into my repository via Rstudio commit.
+
+```{r}
+library(corrplot) #load corrplot package to plot correlations between all the variables (similar but far less heavy than ggplot)
+```
+```{r}
+x = students2014[, c("age", "attitude", "deep", "stra","surf","points")] #numeric variables
+cor(x, use = "pairwise") #correlation matrix
+```
+```{r}
+corrplot.mixed(cor(x, use = "pairwise"), order ="hclust") #graphical representation of correlations from corrplot package
+```
+```{r}
+lm.p = lm(points ~ attitude + surf + stra, data = students2014)#linear model with three most correlated variables
+summary(lm.p)
+```
+The model explains 20% of the variance of points, with only attitude having a significant p-value and so differing from null hypothesis.
+```{r}
+lm.pn = lm(points ~attitude, data = students2014) #new model with the only significant effect
+summary(lm.pn)
+```
+The model now explains 19% of the variance of points with points increasing 0.35 for every 1 increase in attitude.
+```{r}
+qplot(attitude, points, data = students2014) + geom_smooth(method = "lm") #scatter plot with the linear model line
+```
+```{r}
+par(mfrow = c(2,2)) #plot to 2x2 area
+plot(lm.pn) #automatically generates 4 typically used diagnostic plots
+```
+
+1. Residuals do not show a pattern where the distribution of residuals varies depending on fitted values.
+2. QQ-plot seems to be nicely on the line making the SEs and P-values of the model coefficient reliable.
+3. Standardized residuals vs fitted should show a similar magnitude along y-axis of each region on the x-axis, which it does.
 
 ```{r}
 date()
