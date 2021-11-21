@@ -1,0 +1,269 @@
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE) # this part is automatic with rstudio when creating a new rmd file, setting this to FALSE would omit all the r code parts of the document
+```
+
+# Logistic regression
+
+This week we will learn about logistic regression.
+
+First we read the data file made in the data wrangling part and remove the first column created in the csv saving process as it is not needed.
+```{r}
+# read file made with script
+pormath = read.csv("pormath.csv", as.is = TRUE, header = TRUE)
+
+# remove the first x index column, all in all 52 variables with x
+pormath = pormath[c(2:52)]
+```
+
+Then we look at the data to make sure everything looks okay. Let us also load to the dplyr package as we will have need of it.
+```{r}
+library(dplyr)
+glimpse(pormath)
+```
+
+
+We have 370 observations with 51 variables so everything looks to be correct.
+This data comes from the UCI machine learning repository (https://archive.ics.uci.edu/ml/datasets/Student+Performance).
+The data looks at the student achievement in secondary education of two Portuguese schools. The variable list is and information is as follows:
+
+1. school - student's school (binary: 'GP' - Gabriel Pereira or 'MS' - Mousinho da Silveira)
+2. sex - student's sex (binary: 'F' - female or 'M' - male)
+3. age - student's age (numeric: from 15 to 22)
+4. address - student's home address type (binary: 'U' - urban or 'R' - rural)
+5. famsize - family size (binary: 'LE3' - less or equal to 3 or 'GT3' - greater than 3)
+6. Pstatus - parent's cohabitation status (binary: 'T' - living together or 'A' - apart)
+7. Medu - mother's education (numeric: 0 - none, 1 - primary education (4th grade), 2 â€“ 5th to 9th grade, 3 â€“ secondary education or 4 â€“ higher education)
+8. Fedu - father's education (numeric: 0 - none, 1 - primary education (4th grade), 2 â€“ 5th to 9th grade, 3 â€“ secondary education or 4 â€“ higher education)
+9. Mjob - mother's job (nominal: 'teacher', 'health' care related, civil 'services' (e.g. administrative or police), 'at_home' or 'other')
+10. Fjob - father's job (nominal: 'teacher', 'health' care related, civil 'services' (e.g. administrative or police), 'at_home' or 'other')
+11. reason - reason to choose this school (nominal: close to 'home', school 'reputation', 'course' preference or 'other')
+12. guardian - student's guardian (nominal: 'mother', 'father' or 'other')
+13. traveltime - home to school travel time (numeric: 1 - <15 min., 2 - 15 to 30 min., 3 - 30 min. to 1 hour, or 4 - >1 hour)
+14. studytime - weekly study time (numeric: 1 - <2 hours, 2 - 2 to 5 hours, 3 - 5 to 10 hours, or 4 - >10 hours)
+15. failures - number of past class failures (numeric: n if 1<=n<3, else 4)
+16. schoolsup - extra educational support (binary: yes or no)
+17. famsup - family educational support (binary: yes or no)
+18. paid - extra paid classes within the course subject (Math or Portuguese) (binary: yes or no)
+19. activities - extra-curricular activities (binary: yes or no)
+20. nursery - attended nursery school (binary: yes or no)
+21. higher - wants to take higher education (binary: yes or no)
+22. internet - Internet access at home (binary: yes or no)
+23. romantic - with a romantic relationship (binary: yes or no)
+24. famrel - quality of family relationships (numeric: from 1 - very bad to 5 - excellent)
+25. freetime - free time after school (numeric: from 1 - very low to 5 - very high)
+26. goout - going out with friends (numeric: from 1 - very low to 5 - very high)
+27. Dalc - workday alcohol consumption (numeric: from 1 - very low to 5 - very high)
+28. Walc - weekend alcohol consumption (numeric: from 1 - very low to 5 - very high)
+29. health - current health status (numeric: from 1 - very bad to 5 - very good)
+30. absences - number of school absences (numeric: from 0 to 93)
+
+We have also created during the data wrangling a new variables called alc_use which is the mean alcohol used from workday and weekend and with that the logical variable high_use which gives TRUE if the mean alc_use is over 2. 
+
+Our interest is to study the relationship of high/low alcohol consumption to the other variables. For this the interesting values could be the following four:
+
+1. Sex (male/female)
+2. family relationship (1 - very bad to 5 - excellent)
+3. number of past class failures  (n = 1-3 or 4 for > 3)
+4.  going out with friends (1 very low to 5 ver high)
+
+My hypothesis is that alcohol consumption is connected with male sex, poor family relationship, higher number of class failures and higher amount of going out with friends.
+
+First, lets do a quick barplot of all of them.
+```{r}
+# first define 2x3 figure square
+par(mfrow = c(2,3))
+# next barplots, we use the names.arg to define names for the barplots
+barplot(table(pormath$high_use), col = "red", main = "High use of alcohol", names.arg=c("No", "Yes"))
+barplot(table(pormath$sex), col = "lightblue", main = "Sex", names.arg=c("Female", "Male"))
+barplot(table(pormath$famrel), col = "orange", main = "Family relationship", names.arg=c("Very poor", "Poor", "Middle", "High", "Very high"))
+barplot(table(pormath$failures), col = "blue", main = "Course failures", xlab = "Number of failures")
+barplot(table(pormath$goout), col = "black", main = "Going out with friends", names.arg=c("Very low", "Low", "Middle", "High", "Very high"))
+```
+
+
+Next, we will look at the cross-tabulations using the **CrossTable**-function found in the *gmodels*-package. We will also see the values of each indivual variable.
+```{r}
+# load package gmodels
+library(gmodels)
+# crosstable function, prop.t and prop.r are set false as we are interested in the column percentages.
+CrossTable(pormath$high_use, pormath$sex, prop.t = FALSE, prop.r = FALSE, prop.c = TRUE, fisher =TRUE)
+```
+
+From this we can gather that 21% females have high use of alcohol while 40% of males have high alcohol use. We use Fishers exact test to look whether these are significantly different and with the p-value of 0.0001 we can say that high alcohol is different in males and females.
+
+Next we look at the relationship of family relations to high alcohol consumption
+```{r}
+# crosstable function, again with similar arguments as previously
+CrossTable(pormath$high_use, pormath$famrel, prop.t = FALSE, prop.r = FALSE, prop.c = TRUE, fisher = TRUE)
+```
+
+Our assumption that poorer family relations would mean more alcohol use do not seem supported by the cross tabulation and fishers exact test. This could be due to the very low number of participants with bad family relationship as the number of high alcohol users does increase with the decreasing number of family relationship status down to the middle value of 3.
+
+Thirdly we look at the value of the number of past class failures.
+```{r}
+# crosstable function, again with similar arguments as previously
+CrossTable(pormath$high_use, pormath$failures, prop.t = FALSE, prop.r = FALSE, prop.c = TRUE, fisher = TRUE)
+```
+
+Students with 0 failures seem to have the least amount of high alcohol use and the the statistical test seem to indicate that there is a significant difference even though the n-values for higher failures are fairly low. We do not however know the cause-effect of the situation, whether alcohol use causes failures or is due to failures or is a mixed bag of both.
+
+Finally we look at going out with friends variable.
+```{r}
+# crosstable function, again with similar arguments as previously, this time we use the chi-square test
+CrossTable(pormath$high_use, pormath$goout, prop.t = FALSE, prop.r = FALSE, prop.c = TRUE, chisq= TRUE)
+```
+
+It would seem that going out with friends more does indicate more high alcohol use which is as expected. The p-value calculate with chi-square is also very low indicating good statistical significance in this. Alcohol consumption in portugues students seems to relate with social interaction rather than lone drinking.
+
+
+Next, let us do a quick correlation table between the variables with the *corrplot*-function.
+```{r}
+# load corrplot library
+library(corrplot)
+```
+
+
+```{r}
+# first we need to change the sex variable into a numeric variable for correlation (female = 1, male = 2). For some reason this had to be done through transformation to a factor variable first rather than straight as.numeric transformation of a chr variable
+
+pormath$sex = as.factor(pormath$sex)
+pormath$sex = as.numeric(pormath$sex)
+
+# first we create a vector with the variables of interest
+pm.used = pormath[, c("high_use", "sex", "famrel", "failures","goout")]
+# correlation matrix of variables
+cor(pm.used, use = "pairwise")
+```
+We can use corrplot to get us a graphical representation of the correlations.
+
+```{r}
+corrplot.mixed(cor(pm.used, use = "pairwise"), order ="hclust") 
+```
+
+It doesn't seem that the explaining variables correlate with each other that strongly which is good for the logistic regression model. This way we can forehand avoid problems such as multicollinearity.
+
+
+Now that we have explored our variables of interest, we will form a logistic regression model. We need to first make the categorical variables into factorial variables to see the odds between their categories. Sex as a dichotomous variable does not need this for now.
+```{r}
+# make the non-dichotomous variables into factorial variables
+pormath$famrel = factor(pormath$famrel)
+pormath$failures = factor(pormath$failures)
+pormath$goout = factor(pormath$goout)
+```
+
+Next we need to change the reference category of family relationship (famrel) to 5 (very good) from 1 which is the automatic one.
+
+```{r}
+# change the reference category
+pormath$famrel = relevel(pormath$famrel, ref = "5")
+
+```
+
+Now we can form the model and summarize it.
+
+```{r}
+
+# we use the glm-function with the family set to binomial to get a binomial logistic regression model
+pm.1 <- glm(high_use ~ sex + famrel + failures + goout, data = pormath, family = "binomial")
+
+# summary of the model
+summary(pm.1)
+```
+
+Let us calculate the odd's ratios of the model and print them out.
+```{r}
+# calculate odds ratios
+OR = coef(pm.1) %>% exp
+
+# compute confidence intervals (CI)
+CI = confint(pm.1) %>% exp
+
+# print out the odds ratios with their confidence intervals
+cbind(OR, CI)
+```
+
+From these results it would seem that high alcohol use is related to male sex with OR **2.86 (95% CI 1.70-4.88)**. 
+
+From family relationships the result is not as good as we would expect that the worst relations would also have the worst OR but it is the middle relationship that has the significant OR of **3.83 (1.73-8.70)**, this is likely due to the very small number of cases with family relationship < 3, and as an afterthought those two (cat 1 and 2 of famrel) could possibly be combined for better results. 
+
+Failures has a similar problem with the category of single failure having an significant OR of **3.02 (1.12-8.18)** and the others not.
+
+Going out seems to be the most logical of the factorial variables with the highest going out (cat 5 of goout) having an OR of **11.3 (3.09-57.7)**, however the 95% CI range is very large already suggesting some problems with the n-values possibly in reference category, and again combining categories could offer more reliable results.
+
+
+Next let us explore the predictive power of the model. First we will add a probability prediction to the data set and then compare the predictions to the reality of high_use.
+```{r}
+# predicting the probability
+prob = predict(pm.1, type = "response")
+# add these to the data
+pormath = mutate(pormath, probability = prob)
+# add a new variable for the prediction of high_use
+pormath = mutate(pormath, prediction = probability > 0.5)
+# tabulate the target variable versus the predictions to see how many predictions go correct
+table(high_use = pormath$high_use, prediction = pormath$prediction)
+
+```
+Our sensitivity seems not that good while our specificity seems to be much better with only 20 cases that we predicted to have been high_use actually informed not have high use. We can calculate the sensitivity and specifity from this.
+```{r}
+table(high_use = pormath$high_use, prediction = pormath$prediction) %>% prop.table %>% addmargins
+```
+
+The training error(proportion of wrongly classified individuals) is 0.054+0.143 = 0.197, some 20 of all cases. We can also compute a loss model for this same figure.
+```{r}
+loss_func = function(class, prob) {
+  n_wrong = abs(class - prob) > 0.5
+  mean(n_wrong)
+}  
+loss_func(class = pormath$high_use, prob = pormath$probability)
+```
+This is effectively the same as the summed up number from the table.
+
+Let us look at this graphically with **ggplot**-package.
+```{r}
+library(ggplot2)
+# initialize a plot of 'high_use' versus 'probability' in 'alc'
+g = ggplot(pormath, aes(x = probability, y = high_use, col = prediction))
+
+# define the geom as points and draw the plot
+g + geom_point()
+```
+
+It would seem our model works better to close out high alcohol users rather than finding them (specificity > sensitivity).
+
+Lets compare this to a coin toss probability with the *sample*-function.
+```{r}
+# generate 370 coin tosses with TRUE or FALSE as result
+coin = c(TRUE,FALSE)
+cointoss = sample(coin, size = 370, replace = TRUE)
+```
+
+Then we add this to the data.
+
+```{r}
+# add these to the data
+pormath = mutate(pormath, coinpred = cointoss)
+# tabulate the target variable versus the predictions to see how many coin tosses go correct
+table(high_use = pormath$high_use, prediction = pormath$coinpred)
+```
+```{r}
+table(high_use = pormath$high_use, prediction = pormath$coinpred) %>% prop.table %>% addmargins
+```
+
+We can see that completely randomly chosen cases would have the same sensitivity as our model did while the specificity is much better in our model.The training error is also around 50% as is expected from a coin toss. This again is indicative that our model could not find new cases of high alcohol use any better than a random coin toss would but those it would find would have a good chance of being high alcohol users.
+
+We can also do a cross-validation test for this model.
+```{r}
+# K-fold cross-validation
+library(boot)
+cv = cv.glm(data = pormath, cost = loss_func, glmfit = pm.1, K = 10)
+
+# average number of wrong predictions in the cross validation
+cv$delta[1]
+```
+
+It does seem that this model does have a slightly better test set performance with the error prediction being around 0.21-0.22 compared to the datacamp one which had around 0.26.
+```{r}
+date()
+```
+
