@@ -576,7 +576,7 @@ table(high_use = pormath$high_use, prediction = pormath$prediction)</code></pre>
 ## high_use FALSE TRUE
 ##    FALSE   239   20
 ##    TRUE     53   58</code></pre>
-<p>Our sensitivity seems not that good while our specificity seems to be much better with only 20 cases that we predicted to have been high_use actually informed not have high use. We can calculate the sensitivity and specifity from this.</p>
+<p>Our sensitivity seems not that good while our specificity seems to be much better with only 20 cases that we predicted to have been high_use actually informed not have high use. We can calculate the sensitivity and specificity from this.</p>
 <pre class="r"><code>table(high_use = pormath$high_use, prediction = pormath$prediction) %&gt;% prop.table %&gt;% addmargins</code></pre>
 <pre><code>##         prediction
 ## high_use      FALSE       TRUE        Sum
@@ -611,15 +611,15 @@ pormath = mutate(pormath, coinpred = cointoss)
 table(high_use = pormath$high_use, prediction = pormath$coinpred)</code></pre>
 <pre><code>##         prediction
 ## high_use FALSE TRUE
-##    FALSE   122  137
-##    TRUE     62   49</code></pre>
+##    FALSE   142  117
+##    TRUE     64   47</code></pre>
 <pre class="r"><code>table(high_use = pormath$high_use, prediction = pormath$coinpred) %&gt;% prop.table %&gt;% addmargins</code></pre>
 <pre><code>##         prediction
 ## high_use     FALSE      TRUE       Sum
-##    FALSE 0.3297297 0.3702703 0.7000000
-##    TRUE  0.1675676 0.1324324 0.3000000
-##    Sum   0.4972973 0.5027027 1.0000000</code></pre>
-<p>We can see that completely randomly chosen cases would have the same sensitivity as our model did while the specificity is much better in our model.The training error is also around 50% as is expected from a coin toss. This again is indicative that our model could not find new cases of high alcohol use any better than a random coin toss would but those it would find would have a good chance of being high alcohol users.</p>
+##    FALSE 0.3837838 0.3162162 0.7000000
+##    TRUE  0.1729730 0.1270270 0.3000000
+##    Sum   0.5567568 0.4432432 1.0000000</code></pre>
+<p>We can see that completely randomly chosen cases would have the same sensitivity as our model did while the specificity is much better in our model. The training error is also around 50% as is expected from a coin toss. This again is indicative that our model could not find new cases of high alcohol use any better than a random coin toss would but those it would find would have a good chance of being high alcohol users.</p>
 <p>We can also do a cross-validation test for this model.</p>
 <pre class="r"><code># K-fold cross-validation
 library(boot)
@@ -627,10 +627,10 @@ cv = cv.glm(data = pormath, cost = loss_func, glmfit = pm.1, K = 10)
 
 # average number of wrong predictions in the cross validation
 cv$delta[1]</code></pre>
-<pre><code>## [1] 0.2081081</code></pre>
+<pre><code>## [1] 0.2324324</code></pre>
 <p>It does seem that this model does have a slightly better test set performance with the error prediction being around 0.21-0.22 compared to the datacamp one which had around 0.26.</p>
 <pre class="r"><code>date()</code></pre>
-<pre><code>## [1] &quot;Sun Nov 21 14:35:22 2021&quot;</code></pre>
+<pre><code>## [1] &quot;Sun Nov 21 14:41:27 2021&quot;</code></pre>
 </div>
 
 

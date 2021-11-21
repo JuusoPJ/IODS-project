@@ -204,7 +204,7 @@ pormath = mutate(pormath, prediction = probability > 0.5)
 table(high_use = pormath$high_use, prediction = pormath$prediction)
 
 ```
-Our sensitivity seems not that good while our specificity seems to be much better with only 20 cases that we predicted to have been high_use actually informed not have high use. We can calculate the sensitivity and specifity from this.
+Our sensitivity seems not that good while our specificity seems to be much better with only 20 cases that we predicted to have been high_use actually informed not have high use. We can calculate the sensitivity and specificity from this.
 ```{r}
 table(high_use = pormath$high_use, prediction = pormath$prediction) %>% prop.table %>% addmargins
 ```
@@ -250,7 +250,7 @@ table(high_use = pormath$high_use, prediction = pormath$coinpred)
 table(high_use = pormath$high_use, prediction = pormath$coinpred) %>% prop.table %>% addmargins
 ```
 
-We can see that completely randomly chosen cases would have the same sensitivity as our model did while the specificity is much better in our model.The training error is also around 50% as is expected from a coin toss. This again is indicative that our model could not find new cases of high alcohol use any better than a random coin toss would but those it would find would have a good chance of being high alcohol users.
+We can see that completely randomly chosen cases would have the same sensitivity as our model did while the specificity is much better in our model. The training error is also around 50% as is expected from a coin toss. This again is indicative that our model could not find new cases of high alcohol use any better than a random coin toss would but those it would find would have a good chance of being high alcohol users.
 
 We can also do a cross-validation test for this model.
 ```{r}
