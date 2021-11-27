@@ -1,0 +1,245 @@
+# Clustering and classification
+
+This week we will learn about clustering and classifying data.
+
+First we load up the Boston data from MASS package (https://stat.ethz.ch/R-manual/R-devel/library/MASS/html/Boston.html).
+```{r}
+# load up the MASS package and then boston
+library(MASS)
+data("Boston")
+```
+
+Let's explore the data. As this data is loaded straight from the package we don't have an extra id column at start like in the previous weeks with the wrangled data.
+
+```{r}
+# we use str and summary functions
+str(Boston)
+summary(Boston)
+```
+
+This is a pre-made data available with the MASS package with 14 variables and 506 observations. The 14 columns are as follow:
+
+1. **crim**       per capita crime rate by town.
+2. **zn**       proportion of residential land zoned for lots over 25,000 sq.ft.
+3. **indus**      proportion of non-retail business acres per town.
+4. **chas**       Charles River dummy variable (= 1 if tract bounds river; 0 otherwise).
+5. **nox**        nitrogen oxides concentration (parts per 10 million).
+6. **rm**       average number of rooms per dwelling.
+7. **age**        proportion of owner-occupied units built prior to 1940.
+8. **dis**        weighted mean of distances to five Boston employment centres.
+9. **rad**        index of accessibility to radial highways.
+10. **tax**       full-value property-tax rate per \$10,000.
+11. **ptratio**       pupil-teacher ratio by town.
+12. **black**       1000(Bk - 0.63)^2 where Bk is the proportion of blacks by town.
+13. **lstat**       lower status of the population (percent).
+14. **medv**        median value of owner-occupied homes in \$1000s.
+
+Let us visualize the data with the *pairs*-function for a portion of the data (the full set of 14 variables is too much for the pairs function to print out in a readable form).
+```{r}
+pairs(Boston[6:10])
+```
+
+This is not entirely useful so let us try the *corrplot*-package, we also load the *dplyr*-package.
+```{r}
+# first load the the corrplot and dplyr package
+library(corrplot)
+library(dplyr)
+```
+
+```{r}
+# show a correlation matrix with digits rounded to 2
+cor_matrix = cor(Boston, use = "pairwise") 
+cor_matrix %>% round(digits = 2)
+```
+
+```{r}
+# visualizing the corrplot matrix
+corrplot.mixed(cor_matrix, order="hclust")
+```
+
+From the corrplot values and images we can see strong (>0.50) correlations between several variables. The dummy variable chas unsuprisingly does not correlate with the others strongly.
+
+The variables seem to divide in two regarding correlation with each other. Inside the variables corrolate with each other positively but negatively with the the other group of variables.
+
+1. ptratio, lstat, ag, indus, nox, crim, rad and tax.
+2. black, rm, medv, zn, dis
+
+
+Next let us standardize the variables using the *scale*-function.
+```{r}
+# use the scale function on the dataset
+boston_s = scale(Boston)
+```
+Summarizing the new scaled and centered variables.
+```{r}
+summary(boston_s)
+```
+We can see the class of the scaled and centered object with *class*.
+```{r}
+class(boston_s)
+```
+Let's make the matrix variable into a new data frame.
+```{r}
+# using the as.data.frame on the matrix
+boston_scaled = as.data.frame(boston_s)
+```
+
+The scaling effectively changes the variables into a z-scores by substracting the values with its expected value and dividing this difference by its standard deviation.
+
+Next we create a categorical variable of the crime rate from the scaled Boston dataset. First we compute the quantiles of the crim variable
+```{r}
+# create a new quantile vector called bins and check it
+bins = quantile(boston_scaled$crim)
+bins
+```
+Next we use the quantile vector to create a new variable. We will also name the categories made with the quantile vector as follows:
+
+0-25 low
+
+25-50 med_low
+
+50-75 med_high
+
+75-100 high
+
+```{r}
+# create a factorial variabl with cut function and using the quantile of boston_scaled$crim as breaks, also label the new categories accordingly.
+crime = cut(boston_scaled$crim, breaks = bins, include.lowest = TRUE, labels = c("low", "med_low", "med_high", "high"))
+```
+
+Lets have a look at our categorical variable.
+```{r}
+table(crime)
+```
+These now seem to confer to the quantile vector with roughly equal sizes.
+
+We are now ready to remove the original variable and insert the new variable to the data set.
+```{r}
+# use the dplyr:: handle so in case another package also has a similarly named function
+boston_scaled = dplyr::select(boston_scaled, -crim)
+boston_scaled = data.frame(boston_scaled, crime)
+```
+
+Next we divide the data set between a training set(80%) and test set(20%). We start by getting the row number (aka number of observations) for boston_scaled. From there we can choose 80% with the *sample*-function.
+```{r}
+# row and sample size
+n = nrow(boston_scaled)
+ind = sample(n, size = n*0.8)
+
+# train and test set
+train = boston_scaled[ind,]
+test = boston_scaled[-ind,]
+```
+
+Next we save up the test data set crime and remove it.
+```{r}
+# save the crime column of test data set and remove it with select, call dplyr:: just in case again
+correct_classes = test$crime
+test = dplyr::select(test, -crime)
+```
+
+Now we are ready to do some analysis with the linear discriminant method. This method finds the linear combination of the variables that separate the target variable classes. This time our target variable will be the crime variable from the train data set. We do the analysis with the *lda*-function.
+```{r}
+table(train$crime)
+```
+
+```{r}
+# use of lda is similar to linear regression model, we also use the ~. to indicate the function to use all variables available in the data set
+# we utilize the MASS-package, note that this will mask select from dplyr-package which is why used the dplyr:: earlier
+library(MASS)
+lda.fit = lda(crime~., data = train)
+lda.fit
+```
+Next lets draw a plot of the model
+
+```{r}
+# this is a function from the datacamp course for the arrows for the plot
+lda.arrows = function(x, myscale = 1, arrow_heads = 0.1, color = "red", tex = 0.75, choices = c(1,2)){
+  heads = coef(x)
+  arrows(x0 = 0, y0 = 0, 
+         x1 = myscale * heads[,choices[1]], 
+         y1 = myscale * heads[,choices[2]], col=color, length = arrow_heads)
+  text(myscale * heads[,choices], labels = row.names(heads), 
+       cex = tex, col=color, pos=3)
+}
+
+#next is the actual plot with the arrows added
+plot(lda.fit, dimen = 2, col = as.numeric(train$crime), pch = as.numeric(train$crime))
+lda.arrows(lda.fit, myscale = 2)
+```
+
+You may notice that this looks like a negative of the data camp results, this is because the datacamp actually has stored in the exercise a different order of variables (high, low, med_high, med_low) and this uses the order (low, med_low, med_high, high). The models are otherwise identical and the random sampling only gives a small variance to the results.
+
+Next we will predict the classes of of the crime variable to the test data.
+```{r}
+# predict classes with test data
+lda.pred <- predict(lda.fit, newdata = test)
+
+# cross tabulate the results
+table(correct = correct_classes, predicted = lda.pred$class)
+```
+
+The results are similar to the datacamp results with the high crime rate prediction being the best. For the others there is some deviance and the results seem a bit worse. Again the order of the categories is different here.
+
+Now for the final bit, we will reload the boston-dataset and standardize it.
+```{r}
+# load data, scale it and reform into a dataframe
+data("Boston")
+Boston = as.data.frame(scale(Boston))
+# check that it looks correct again
+summary(Boston)
+```
+
+Seems correct now let us compute the distances.
+```{r}
+# use the dist function to compute the distances for both euclidean and manhattan methods
+dist_eu = dist(Boston)
+dist_man = dist(Boston, method = "manhattan")
+# look at the summary of the distances
+summary(dist_eu)
+summary(dist_man)
+
+```
+
+Let's use the k-means clustering for this print them with pairs.
+```{r}
+# k-means clustering
+km = kmeans(Boston, centers = "3")
+
+# plot the Boston dataset with clusters
+pairs(Boston[6:10], col = km$cluster)
+```
+
+It would seem that 3 centers gives the nicest looking result although in some cases 2 might be better. 
+
+We can check the optimal number also by looking at the total within cluster sum of squares (WCSS).
+```{r}
+library(ggplot2)
+# MASS, ggplot2 and Boston dataset are available
+set.seed(123)
+
+# determine the number of clusters
+k_max = 10
+
+# calculate the total within sum of squares
+twcss = sapply(1:k_max, function(k){kmeans(Boston, k)$tot.withinss})
+
+# visualize the results
+qplot(x = 1:k_max, y = twcss, geom = 'line')
+```
+It would seem that 2 centers is the optimal result.
+
+```{r}
+# k-means clustering
+km = kmeans(Boston, centers = "2")
+
+# plot the Boston dataset with clusters
+pairs(Boston[3:8], col = km$cluster)
+```
+
+With the 2 centers we end up with clusters of 2 for each pairing. We only have a part of the variables shown here simply for the sake of seeing how the clustering works and how the two clusters are differianted with red and black colours. Depending on the pairing the clustering seems to reasonable but for those variable pairings with high correlation the clustering doesn't really seem to do much. With these variables the indus variable seems to make the most reasonable clustering where the two clusters of plots are different set of values. It is also possible that individual pairings would benefit more from 3 clusters rather than 2 even if over the whole data pairings 2 clusters is the optimal.
+
+```{r}
+date()
+```
+
