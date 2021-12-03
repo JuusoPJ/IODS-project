@@ -1,0 +1,141 @@
+# Dimensionality reduction techniques
+```{r}
+# this definition for knitting at the start of the document sets some rules for the figure sizes which will help as the standard rules might make unreadable figures
+knitr::opts_chunk$set(fig.width=12, fig.height=8) 
+```
+
+
+This week we will learn about dimension reduction techniques.
+
+We will work with the previously wrangled human development index data.
+
+Load up some libraries we might need.
+```{r}
+library(dplyr)
+library(GGally)
+library(FactoMineR)
+library(tidyr)
+```
+
+
+```{r}
+human = read.csv("human2.csv", as.is = TRUE, header = TRUE)
+```
+
+First we change the column X back to rown names and remove that column so we have countries again as row names.
+```{r}
+rownames(human) = human$X
+human = human[c(2:9)]
+```
+
+```{r}
+summary(human)
+```
+Let's visualize the data with *ggpairs* using the **GGally** package.
+
+```{r}
+ggpairs(human, mapping = aes(alpha = 0.5, color = "Corr"))
+```
+
+From the out look Education female/male ratio, labour female/male ratio, education expectation and percent of females in parlament all seem to be somewhat normally distributed.
+
+GNI and Maternal mortality, adolescent birthrate look abit like poisson distributed.
+
+GNI is most positively correlated with education expectation and life expectancy. GNI is also negatively correlated with adolescent birthrate and maternal mortality. So countries with high GNI also have high education expectation and life expectancy but low adolescent birthrate and low maternal mortality.
+
+Let's make a principal component analysis.
+```{r}
+# model with prcomp and summary of the model
+pca_human = prcomp(human)
+summary(pca_human)
+```
+
+The standard deviation alone at 10^4 is way overboard and PC1 already takes 99.999 proportion of variance.
+
+We'll try the plotting anyway even though the summary looks pretty bad.
+```{r}
+# visualization with the stat package biplot
+biplot(pca_human, choices = 1:2, cex = c(0.6, 1.4), col = c("grey40", "deeppink2"))
+```
+
+The unstandardized modeling seems to quite bad. Only GNI has some kind of effect visible. The grouping of countries is also bad and they all seem clustered in the bottom left corner. There really isn't much point to analyze this un-standardized data any further.
+
+Let's standardize the variables and try the analysis again.
+```{r}
+# standardise and create the model with the standardized data
+human_std = scale(human)
+pca_std = prcomp(human_std)
+```
+
+Then lets look at the model summary.
+```{r}
+summary(pca_std)
+```
+
+Now this looks good already and the results seem much better.
+
+Let's try to plot this. Let's take the first two principal components  since they already explain some 70% of the variances.
+```{r}
+# We'll use biplot to make the pca plot and ablines to give us the grid so we can group up countries in different quadrants
+
+biplot(pca_std, xlim = c(-0.2, 0.2), ylim = c(-0.2, 0.2), choices = 1:2, cex = c(0.6, 1.1), col = c("grey40", "deeppink2"), ylabs = c("Female-male education rate", "Female-Male labour rate", "Expected education", "Expected Life", "Gross national income", "Adolescent birthrate", "Maternal mortality", "Female parlamentary representation"), xlab = "PC1 (53.6%)", ylab = "PC2 (16.2%)")
+abline(h = 0, v = 0 ,lwd = 1, col = "grey20", lty = 2)
+```
+
+In general the countries on the right side of the plot have higher GNI and expected life time and expected study times and countries on the left side have higher maternal mortality as well as higher adolescent birthrate. Countries on the upper part have lower female representation and participation in the society while countries on the bottom are the opposite. These would be the two principal components of the model and they explain some 70% of the variances between countries.
+
+From this standardized data we can see a pretty good variance between the variables and in the groupings of countries. For example all the Nordic countries are grouped in the bottom right with high female parliamentary representation and high female-male labour rate, as well as high GNI, expected life and education time and high female-male education rate. These countries also have low maternal mortality and low adolescent birthrate.
+
+Many African countries seem to be on the left side with low GNI and high maternal mortality as well as low expected education and life times. Arab countries seem to have decent to good GNI with decent life and education expectancy but poor female representation.
+
+
+Next we will look at the teaset from the package **FactoMineR**.
+
+We start by loading the dataset.
+
+```{r}
+# use data(tea) to load-up the dataset from the FactoMineR package
+data(tea)
+summary(tea)
+```
+```{r}
+str(tea)
+```
+
+
+The tea data has 35 factorial variables and 1 integer variable. Let's visualize these by barplots where we gather them in two groups for the sake of the printout.
+
+```{r}
+gather(tea[1:18]) %>% ggplot(aes(value)) + facet_wrap("key", scales = "free") + geom_bar() + theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 8))
+```
+
+```{r}
+gather(tea[20:36]) %>% ggplot(aes(value)) + facet_wrap("key", scales = "free") + geom_bar() + theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 8))
+
+```
+
+
+That's a lot of variables so lets choose a smaller subset of interesting ones of them.
+```{r}
+#create a vector for the columns to keep
+keep_tea = c("sex", "breakfast", "friends", "evening", "How", "where", "how", "frequency","sugar", "Tea")
+tea_keep = dplyr::select(tea, one_of(keep_tea))
+```
+
+
+```{r}
+# create the model from the subset of variables defined previously
+tea_mca = MCA(tea_keep, graph = FALSE)
+summary(tea_mca)
+```
+
+```{r}
+# plot the model for visual inspection
+plot(tea_mca, invisible=c("ind"), habillage = "quali", graph.type = "classic")
+```
+
+It is difficult to say what the first dimension (x-axis) relates to since there are no clear pairings from the variables. Y-axis could relate to the style of tea drunk and where it is bought from (unpackaged and teashop vs chain store and tea bags). The amount of variances the two first explain is quite small so that also makes it more difficult to interpret.
+
+```{r}
+date()
+```
